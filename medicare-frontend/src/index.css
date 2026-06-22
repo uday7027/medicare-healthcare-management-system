@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional: your custom base styles */
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-neutralBg text-textPrimary font-sans;
+  }
+  a {
+    @apply text-primary hover:text-blue-700 transition-colors;
+  }
+  h1,h2,h3,h4 {
+    @apply font-semibold text-textPrimary;
+  }
+}
