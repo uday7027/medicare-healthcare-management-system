@@ -1,26 +1,17 @@
 import React from "react";
-
 import HomeLayout from "../../components/layouts/HomeLayout";
-
 import { Link, useNavigate } from "react-router-dom";
-
 import { useForm } from "react-hook-form";
-
 import * as yup from "yup";
-
 import { yupResolver } from "@hookform/resolvers/yup";
-
 import { loginUser } from "../../api/auth";
-
 import { useAuth } from "../../context/AuthContext";
-
 import { toast } from "react-toastify";
-
 import { GoogleLogin } from "@react-oauth/google";
-
 import axios from "axios";
 
-// Validation schema
+// API URL from environment variable
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Validation schema
 const schema = yup.object({
@@ -28,23 +19,27 @@ const schema = yup.object({
     .string()
     .trim()
     .email("Enter a valid email address")
-    .test("valid-domain", "Please enter a real email address", (value) => {
-      if (!value) return false;
+    .test(
+      "valid-domain",
+      "Please enter a real email address",
+      (value) => {
+        if (!value) return false;
 
-      // Block fake/test domains
-      const blockedDomains = [
-        "example.com",
-        "test.com",
-        "mailinator.com",
-        "fake.com",
-        "tempmail.com",
-        "dummy.com",
-      ];
+        // Block fake/test domains
+        const blockedDomains = [
+          "example.com",
+          "test.com",
+          "mailinator.com",
+          "fake.com",
+          "tempmail.com",
+          "dummy.com",
+        ];
 
-      const domain = value.split("@")[1]?.toLowerCase();
+        const domain = value.split("@")[1]?.toLowerCase();
 
-      return domain && !blockedDomains.includes(domain);
-    })
+        return domain && !blockedDomains.includes(domain);
+      }
+    )
     .required("Email is required"),
 
   password: yup
@@ -74,10 +69,10 @@ export default function Login() {
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       const response = await axios.post(
-        "http://localhost:8080/api/auth/google",
+        `${API_URL}/api/auth/google`,
         {
           token: credentialResponse.credential,
-        },
+        }
       );
 
       const payload = response.data;
@@ -120,26 +115,21 @@ export default function Login() {
       const payload = await loginUser(data);
 
       // Safety check
-
       if (!payload.user) {
         toast.error("Login failed: User data missing");
-
         return;
       }
 
       // Save auth data
-
       login(payload);
 
       toast.success("Login successful!");
 
       // Reset fields
-
       setValue("email", "");
       setValue("password", "");
 
       // Role-based redirect
-
       const role = payload.user.role;
 
       if (role === "PATIENT") {
@@ -153,7 +143,9 @@ export default function Login() {
       console.error(err);
 
       const message =
-        err.response?.data?.message || err.response?.data || "Login failed";
+        err.response?.data?.message ||
+        err.response?.data ||
+        "Login failed";
 
       // ===================================
       // EMAIL NOT VERIFIED FLOW
@@ -163,11 +155,9 @@ export default function Login() {
         toast.warning("Please verify your email first");
 
         // Store email for OTP page
-
         localStorage.setItem("verifyEmail", data.email);
 
         // Redirect to OTP page
-
         navigate("/verify-otp");
 
         return;
@@ -283,15 +273,15 @@ export default function Login() {
                   {...register("email")}
                   placeholder="Enter your email"
                   className={`
-    w-full border
-    ${errors.email ? "border-red-500" : "border-gray-300"}
-    rounded-xl px-4 py-3
-    text-gray-700
-    focus:outline-none
-    focus:ring-2
-    focus:ring-primary
-    transition
-  `}
+                    w-full border
+                    ${errors.email ? "border-red-500" : "border-gray-300"}
+                    rounded-xl px-4 py-3
+                    text-gray-700
+                    focus:outline-none
+                    focus:ring-2
+                    focus:ring-primary
+                    transition
+                  `}
                 />
 
                 {errors.email && (
@@ -322,15 +312,15 @@ export default function Login() {
                   {...register("password")}
                   placeholder="Enter your password"
                   className={`
-    w-full border
-    ${errors.password ? "border-red-500" : "border-gray-300"}
-    rounded-xl px-4 py-3
-    text-gray-700
-    focus:outline-none
-    focus:ring-2
-    focus:ring-primary
-    transition
-  `}
+                    w-full border
+                    ${errors.password ? "border-red-500" : "border-gray-300"}
+                    rounded-xl px-4 py-3
+                    text-gray-700
+                    focus:outline-none
+                    focus:ring-2
+                    focus:ring-primary
+                    transition
+                  `}
                 />
 
                 {errors.password && (
@@ -441,24 +431,17 @@ export default function Login() {
       <style>
         {`
           @keyframes float {
-
             0%, 100% {
-
-              transform:
-                translateY(0px);
+              transform: translateY(0px);
             }
 
             50% {
-
-              transform:
-                translateY(-15px);
+              transform: translateY(-15px);
             }
           }
 
           .animate-float {
-
-            animation:
-              float 6s ease-in-out infinite;
+            animation: float 6s ease-in-out infinite;
           }
         `}
       </style>

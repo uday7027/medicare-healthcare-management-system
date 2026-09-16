@@ -8,10 +8,10 @@ import { registerUser } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import { GoogleLogin } from "@react-oauth/google";
-
 import axios from "axios";
 
-// Validation schema
+const API_URL = import.meta.env.VITE_API_URL;
+
 // Validation schema
 const schema = yup.object({
   name: yup
@@ -24,23 +24,27 @@ const schema = yup.object({
     .string()
     .trim()
     .email("Enter a valid email address")
-    .test("valid-domain", "Please enter a real email address", (value) => {
-      if (!value) return false;
+    .test(
+      "valid-domain",
+      "Please enter a real email address",
+      (value) => {
+        if (!value) return false;
 
-      // Block fake/test domains
-      const blockedDomains = [
-        "example.com",
-        "test.com",
-        "mailinator.com",
-        "fake.com",
-        "tempmail.com",
-        "dummy.com",
-      ];
+        // Block fake/test domains
+        const blockedDomains = [
+          "example.com",
+          "test.com",
+          "mailinator.com",
+          "fake.com",
+          "tempmail.com",
+          "dummy.com",
+        ];
 
-      const domain = value.split("@")[1]?.toLowerCase();
+        const domain = value.split("@")[1]?.toLowerCase();
 
-      return domain && !blockedDomains.includes(domain);
-    })
+        return domain && !blockedDomains.includes(domain);
+      }
+    )
     .required("Email is required"),
 
   phone: yup
@@ -54,7 +58,7 @@ const schema = yup.object({
     .min(8, "Password must be at least 8 characters")
     .matches(
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])/,
-      "Password must contain uppercase, lowercase, number and special character",
+      "Password must contain uppercase, lowercase, number and special character"
     ),
 
   role: yup
@@ -75,6 +79,10 @@ export default function Register() {
   } = useForm({
     resolver: yupResolver(schema),
   });
+
+  // ===================================
+  // NORMAL REGISTRATION
+  // ===================================
 
   const onSubmit = async (data) => {
     try {
@@ -118,19 +126,23 @@ export default function Register() {
       toast.error(message);
     }
   };
+
+  // ===================================
+  // GOOGLE REGISTRATION
+  // ===================================
+
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       const response = await axios.post(
-        "http://localhost:8080/api/auth/google",
+        `${API_URL}/api/auth/google`,
         {
           token: credentialResponse.credential,
-        },
+        }
       );
 
       const payload = response.data;
 
       // If role selection required
-
       if (payload.needsRoleSelection) {
         localStorage.setItem("googleEmail", payload.user.email);
 
@@ -140,7 +152,6 @@ export default function Register() {
       }
 
       // Existing user
-
       login(payload);
 
       toast.success("Google Login Successful");
@@ -157,7 +168,7 @@ export default function Register() {
     } catch (err) {
       console.error(err);
 
-      toast.error("Google Login Failed");
+      toast.error("Google Signup Failed");
     }
   };
 
@@ -165,41 +176,58 @@ export default function Register() {
     <HomeLayout>
       <div className="min-h-[calc(100vh-80px)] flex justify-center items-center bg-gradient-to-r from-blue-50 to-indigo-100 px-6 py-16">
         <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2">
+
           {/* Left Illustration */}
+
           <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-10 relative">
+
             <h2 className="text-4xl text-white font-bold mb-4">
               Join MediCare Today 👋
             </h2>
+
             <p className="text-lg opacity-90 mb-8 text-center">
               Seamlessly manage appointments, records, and communications.
             </p>
+
             <img
               src="/illustrations/register-illustration.png"
               alt="Register Illustration"
               className="w-3/4 animate-float"
             />
+
           </div>
 
           {/* Right Form */}
+
           <div className="p-10 md:p-14 flex flex-col justify-center relative bg-white">
+
             <h1 className="text-3xl font-extrabold text-gray-800 mb-2 text-center md:text-left">
               Create Your Account
             </h1>
+
             <p className="text-gray-500 mb-8 text-center md:text-left">
               Fill in your details to get started
             </p>
 
+            {/* Registration Form */}
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+
               {/* Name */}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Full Name
                 </label>
+
                 <input
                   {...register("name")}
                   placeholder="Enter your full name"
-                  className={`w-full border ${errors.name ? "border-red-500" : "border-gray-300"} rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary transition`}
+                  className={`w-full border ${
+                    errors.name ? "border-red-500" : "border-gray-300"
+                  } rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary transition`}
                 />
+
                 {errors.name && (
                   <p className="text-sm text-red-500 mt-1">
                     {errors.name.message}
@@ -208,16 +236,21 @@ export default function Register() {
               </div>
 
               {/* Email */}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Email
                 </label>
+
                 <input
                   {...register("email")}
                   type="email"
                   placeholder="Enter your email"
-                  className={`w-full border ${errors.email ? "border-red-500" : "border-gray-300"} rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary transition`}
+                  className={`w-full border ${
+                    errors.email ? "border-red-500" : "border-gray-300"
+                  } rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary transition`}
                 />
+
                 {errors.email && (
                   <p className="text-sm text-red-500 mt-1">
                     {errors.email.message}
@@ -226,10 +259,12 @@ export default function Register() {
               </div>
 
               {/* Phone */}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Phone
                 </label>
+
                 <input
                   {...register("phone")}
                   type="tel"
@@ -242,6 +277,7 @@ export default function Register() {
                     errors.phone ? "border-red-500" : "border-gray-300"
                   } rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary transition`}
                 />
+
                 {errors.phone && (
                   <p className="text-sm text-red-500 mt-1">
                     {errors.phone.message}
@@ -250,16 +286,21 @@ export default function Register() {
               </div>
 
               {/* Password */}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Password
                 </label>
+
                 <input
                   {...register("password")}
                   type="password"
                   placeholder="Enter your password"
-                  className={`w-full border ${errors.password ? "border-red-500" : "border-gray-300"} rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary transition`}
+                  className={`w-full border ${
+                    errors.password ? "border-red-500" : "border-gray-300"
+                  } rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary transition`}
                 />
+
                 {errors.password && (
                   <p className="text-sm text-red-500 mt-1">
                     {errors.password.message}
@@ -268,19 +309,24 @@ export default function Register() {
               </div>
 
               {/* Role */}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Role
                 </label>
+
                 <select
                   {...register("role")}
-                  className={`w-full border ${errors.role ? "border-red-500" : "border-gray-300"} rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary transition`}
+                  className={`w-full border ${
+                    errors.role ? "border-red-500" : "border-gray-300"
+                  } rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary transition`}
                 >
                   <option value="">Select Role</option>
                   <option value="PATIENT">Patient</option>
                   <option value="DOCTOR">Doctor</option>
                   <option value="STAFF">Staff</option>
                 </select>
+
                 {errors.role && (
                   <p className="text-sm text-red-500 mt-1">
                     {errors.role.message}
@@ -289,6 +335,7 @@ export default function Register() {
               </div>
 
               {/* Submit Button */}
+
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -296,7 +343,11 @@ export default function Register() {
               >
                 {isSubmitting ? "Registering..." : "Register"}
               </button>
+
             </form>
+
+            {/* Google Login */}
+
             <div className="mt-5 flex justify-center">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
@@ -305,6 +356,8 @@ export default function Register() {
                 }}
               />
             </div>
+
+            {/* Login Link */}
 
             <p className="text-center text-gray-600 mt-6 text-sm">
               Already have an account?{" "}
@@ -315,18 +368,28 @@ export default function Register() {
                 Login here
               </Link>
             </p>
+
           </div>
         </div>
       </div>
 
       {/* Floating Animation */}
+
       <style>
         {`
           @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-15px); }
+            0%, 100% {
+              transform: translateY(0px);
+            }
+
+            50% {
+              transform: translateY(-15px);
+            }
           }
-          .animate-float { animation: float 6s ease-in-out infinite; }
+
+          .animate-float {
+            animation: float 6s ease-in-out infinite;
+          }
         `}
       </style>
     </HomeLayout>
