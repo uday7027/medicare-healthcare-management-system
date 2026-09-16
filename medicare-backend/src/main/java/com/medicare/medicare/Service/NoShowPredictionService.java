@@ -10,7 +10,7 @@ import org.springframework.web.client.RestTemplate;
 public class NoShowPredictionService {
 
     @Value("${ml.service.url}")
-    private String mlServiceUrl;
+    private String ML_URL;
     private final RestTemplate restTemplate = new RestTemplate();
 
     public NoShowPredictionResponse predict(NoShowPredictionRequest request) {
