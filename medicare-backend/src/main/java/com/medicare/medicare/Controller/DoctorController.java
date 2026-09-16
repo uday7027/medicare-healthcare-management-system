@@ -5,7 +5,9 @@ import com.medicare.medicare.Entity.User;
 import com.medicare.medicare.Service.AppointmentService;
 import com.medicare.medicare.Service.DoctorService;
 import com.medicare.medicare.Service.UserService;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -23,139 +25,300 @@ public class DoctorController {
     private final UserService userService;
     private final AppointmentService appointmentService;
 
-    // Create or Update Doctor
+
+    // =========================================================
+    // CREATE / UPDATE DOCTOR PROFILE
+    // =========================================================
+
     @PostMapping
-    public ResponseEntity<?> createOrUpdateDoctor(@RequestBody Map<String, Object> request,
-                                                  Authentication auth) {
+    public ResponseEntity<?> createOrUpdateDoctor(
+            @RequestBody Map<String, Object> request,
+            Authentication auth) {
 
         String email = auth.getName();
-        User user = userService.getAllUsers()
-                .stream()
-                .filter(u -> u.getEmail().equals(email))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!user.getRole().name().equals("DOCTOR")) {
-            return ResponseEntity.status(403).body("Only doctors can create/update their profile");
+        User user = userService.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        // Only doctors can create/update doctor profile
+        if (user.getRole() == null ||
+                !user.getRole().name().equals("DOCTOR")) {
+
+            return ResponseEntity
+                    .status(403)
+                    .body("Only doctors can create/update their profile");
         }
 
-        // Check if doctor already exists
-        Doctor doctor;
-        try {
-            doctor = doctorService.getDoctorByUser(user);
-        } catch (RuntimeException e) {
-            doctor = Doctor.builder().user(user).build();
-        }
+        /*
+         * Find existing doctor.
+         * If no Doctor record exists, create one.
+         */
+        Doctor doctor = doctorService
+                .getDoctorByUserOptional(user)
+                .orElseGet(() ->
+                        Doctor.builder()
+                                .user(user)
+                                .build()
+                );
 
-        // Update fields if provided
-        if (request.containsKey("specialty")) doctor.setSpecialty((String) request.get("specialty"));
-        if (request.containsKey("qualification")) doctor.setQualification((String) request.get("qualification"));
+        updateDoctorFields(doctor, request);
 
-        // Handle availableDays (convert List<String> to Set<DayOfWeek>)
-        if (request.containsKey("availableDays")) {
-            List<String> daysList = (List<String>) request.get("availableDays");
-            Set<DayOfWeek> daysSet = new HashSet<>();
-            for (String dayStr : daysList) {
-                daysSet.add(DayOfWeek.valueOf(dayStr.toUpperCase()));
-            }
-            doctor.setAvailableDays(daysSet);
-        }
+        Doctor savedDoctor =
+                doctorService.createOrUpdateDoctor(doctor);
 
-        // Handle optional times
-        if (request.containsKey("startTime")) doctor.setStartTime(LocalTime.parse((String) request.get("startTime")));
-        if (request.containsKey("endTime")) doctor.setEndTime(LocalTime.parse((String) request.get("endTime")));
-
-        Doctor savedDoctor = doctorService.createOrUpdateDoctor(doctor);
         return ResponseEntity.ok(savedDoctor);
     }
 
-    // Update doctor profile explicitly
+
+    // =========================================================
+    // UPDATE DOCTOR PROFILE
+    // =========================================================
+
     @PutMapping
-    public ResponseEntity<?> updateDoctorProfile(@RequestBody Map<String, Object> request,
-                                                 Authentication auth) {
+    public ResponseEntity<?> updateDoctorProfile(
+            @RequestBody Map<String, Object> request,
+            Authentication auth) {
 
         String email = auth.getName();
-        User user = userService.getAllUsers()
-                .stream()
-                .filter(u -> u.getEmail().equals(email))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!user.getRole().name().equals("DOCTOR")) {
-            return ResponseEntity.status(403).body("Only doctors can update their profile");
+        User user = userService.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        // Only doctors can update their profile
+        if (user.getRole() == null ||
+                !user.getRole().name().equals("DOCTOR")) {
+
+            return ResponseEntity
+                    .status(403)
+                    .body("Only doctors can update their profile");
         }
 
-        // Get existing doctor
-        Doctor doctor = doctorService.getDoctorByUser(user);
+        /*
+         * Get existing profile.
+         * If missing, create it automatically.
+         */
+        Doctor doctor = doctorService
+                .getDoctorByUserOptional(user)
+                .orElseGet(() ->
+                        Doctor.builder()
+                                .user(user)
+                                .build()
+                );
 
-        // Update fields if present
-        if (request.containsKey("specialty")) doctor.setSpecialty((String) request.get("specialty"));
-        if (request.containsKey("qualification")) doctor.setQualification((String) request.get("qualification"));
+        updateDoctorFields(doctor, request);
 
-        if (request.containsKey("availableDays")) {
-            List<String> daysList = (List<String>) request.get("availableDays");
-            Set<DayOfWeek> daysSet = new HashSet<>();
-            for (String dayStr : daysList) {
-                daysSet.add(DayOfWeek.valueOf(dayStr.toUpperCase()));
-            }
-            doctor.setAvailableDays(daysSet);
-        }
+        Doctor updatedDoctor =
+                doctorService.createOrUpdateDoctor(doctor);
 
-        if (request.containsKey("startTime")) doctor.setStartTime(LocalTime.parse((String) request.get("startTime")));
-        if (request.containsKey("endTime")) doctor.setEndTime(LocalTime.parse((String) request.get("endTime")));
-
-        Doctor updatedDoctor = doctorService.createOrUpdateDoctor(doctor);
         return ResponseEntity.ok(updatedDoctor);
     }
 
-    // Get my profile
+
+    // =========================================================
+    // GET MY PROFILE
+    // =========================================================
+
     @GetMapping("/me")
-    public ResponseEntity<?> getMyProfile(Authentication auth) {
+    public ResponseEntity<?> getMyProfile(
+            Authentication auth) {
+
         String email = auth.getName();
-        User user = userService.getAllUsers()
-                .stream()
-                .filter(u -> u.getEmail().equals(email))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Doctor doctor = doctorService.getDoctorByUser(user);
+        User user = userService.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
 
-        Map<String, Object> response = Map.of(
-                "id", doctor.getId(),
-                "specialty", doctor.getSpecialty(),
-                "qualification", doctor.getQualification(),
-                "availableDays", doctor.getAvailableDays(),
-                "startTime", doctor.getStartTime(),
-                "endTime", doctor.getEndTime(),
-                "user", Map.of(
-                        "name", user.getName(),
-                        "email", user.getEmail(),
-                        "role", user.getRole()
-                )
-        );
+        Optional<Doctor> optionalDoctor =
+                doctorService.getDoctorByUserOptional(user);
+
+        if (optionalDoctor.isEmpty()) {
+
+            return ResponseEntity
+                    .status(404)
+                    .body("Doctor profile not found");
+        }
+
+        Doctor doctor = optionalDoctor.get();
+
+        Map<String, Object> userMap = new HashMap<>();
+
+        userMap.put("name", user.getName());
+        userMap.put("email", user.getEmail());
+        userMap.put("role", user.getRole());
+
+        Map<String, Object> response = new HashMap<>();
+
+        response.put("id", doctor.getId());
+        response.put("specialty", doctor.getSpecialty());
+        response.put("qualification", doctor.getQualification());
+        response.put("availableDays", doctor.getAvailableDays());
+        response.put("startTime", doctor.getStartTime());
+        response.put("endTime", doctor.getEndTime());
+        response.put("user", userMap);
 
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/with-user")
-    public ResponseEntity<List<Map<String, Object>>> getAllDoctorsWithUser() {
-        List<Doctor> doctors = doctorService.getAllDoctors();
 
-        // Map doctors to include user info
-        List<Map<String, Object>> result = doctors.stream().map(doc -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", doc.getId());
-            map.put("specialty", doc.getSpecialty());
-            map.put("qualification", doc.getQualification());
-            map.put("user", Map.of(
-                    "id", doc.getUser().getId(),
-                    "name", doc.getUser().getName(),
-                    "email", doc.getUser().getEmail()
-            ));
-            return map;
-        }).toList();
+    // =========================================================
+    // GET ALL DOCTORS WITH USER
+    // =========================================================
+
+    @GetMapping("/with-user")
+    public ResponseEntity<List<Map<String, Object>>>
+    getAllDoctorsWithUser() {
+
+        List<Doctor> doctors =
+                doctorService.getAllDoctors();
+
+        List<Map<String, Object>> result =
+                doctors.stream()
+                        .map(doc -> {
+
+                            Map<String, Object> map =
+                                    new HashMap<>();
+
+                            map.put("id", doc.getId());
+                            map.put(
+                                    "specialty",
+                                    doc.getSpecialty()
+                            );
+                            map.put(
+                                    "qualification",
+                                    doc.getQualification()
+                            );
+
+                            Map<String, Object> userMap =
+                                    new HashMap<>();
+
+                            userMap.put(
+                                    "id",
+                                    doc.getUser().getId()
+                            );
+
+                            userMap.put(
+                                    "name",
+                                    doc.getUser().getName()
+                            );
+
+                            userMap.put(
+                                    "email",
+                                    doc.getUser().getEmail()
+                            );
+
+                            map.put("user", userMap);
+
+                            return map;
+                        })
+                        .toList();
 
         return ResponseEntity.ok(result);
     }
-}
 
+
+    // =========================================================
+    // HELPER METHOD
+    // =========================================================
+
+    private void updateDoctorFields(
+            Doctor doctor,
+            Map<String, Object> request) {
+
+        // Specialty
+        if (request.containsKey("specialty")) {
+
+            Object value =
+                    request.get("specialty");
+
+            if (value != null) {
+                doctor.setSpecialty(
+                        value.toString()
+                );
+            }
+        }
+
+
+        // Qualification
+        if (request.containsKey("qualification")) {
+
+            Object value =
+                    request.get("qualification");
+
+            if (value != null) {
+                doctor.setQualification(
+                        value.toString()
+                );
+            }
+        }
+
+
+        // Available Days
+        if (request.containsKey("availableDays")) {
+
+            Object value =
+                    request.get("availableDays");
+
+            if (value instanceof List<?>) {
+
+                List<?> daysList =
+                        (List<?>) value;
+
+                Set<DayOfWeek> daysSet =
+                        new HashSet<>();
+
+                for (Object day : daysList) {
+
+                    if (day != null) {
+
+                        daysSet.add(
+                                DayOfWeek.valueOf(
+                                        day.toString()
+                                                .toUpperCase()
+                                )
+                        );
+                    }
+                }
+
+                doctor.setAvailableDays(daysSet);
+            }
+        }
+
+
+        // Start Time
+        if (request.containsKey("startTime")) {
+
+            Object value =
+                    request.get("startTime");
+
+            if (value != null &&
+                    !value.toString().isBlank()) {
+
+                doctor.setStartTime(
+                        LocalTime.parse(
+                                value.toString()
+                        )
+                );
+            }
+        }
+
+
+        // End Time
+        if (request.containsKey("endTime")) {
+
+            Object value =
+                    request.get("endTime");
+
+            if (value != null &&
+                    !value.toString().isBlank()) {
+
+                doctor.setEndTime(
+                        LocalTime.parse(
+                                value.toString()
+                        )
+                );
+            }
+        }
+    }
+}

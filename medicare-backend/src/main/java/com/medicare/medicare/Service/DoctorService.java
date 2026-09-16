@@ -4,12 +4,18 @@ import com.medicare.medicare.Entity.Doctor;
 import com.medicare.medicare.Entity.User;
 import com.medicare.medicare.Repository.DoctorRepository;
 import com.medicare.medicare.Repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -29,10 +35,15 @@ public class DoctorService {
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
     }
 
-    //  Get Doctor by User
+    // Get Doctor by User
     public Doctor getDoctorByUser(User user) {
         return doctorRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
+    }
+
+    // Safe lookup - does not throw exception if profile doesn't exist
+    public Optional<Doctor> getDoctorByUserOptional(User user) {
+        return doctorRepository.findByUser(user);
     }
 
     // Get All Doctors
@@ -40,48 +51,75 @@ public class DoctorService {
         return doctorRepository.findAll();
     }
 
-    // =================== Get All Doctors with User Info (for frontend) ===================
+    // Get All Doctors with User Info
     public List<Map<String, Object>> getAllDoctorsWithUser() {
+
         List<Doctor> doctors = doctorRepository.findAll();
+
         List<Map<String, Object>> result = new ArrayList<>();
 
         for (Doctor doc : doctors) {
-            Optional<User> userOpt = userRepository.findById(doc.getUser().getId());
+
+            Optional<User> userOpt =
+                    userRepository.findById(doc.getUser().getId());
+
             if (userOpt.isPresent()) {
+
                 User user = userOpt.get();
+
                 Map<String, Object> map = new HashMap<>();
+
                 map.put("id", doc.getId());
                 map.put("userId", user.getId());
-                map.put("name", user.getName()); // user name
+                map.put("name", user.getName());
                 map.put("specialty", doc.getSpecialty());
                 map.put("qualification", doc.getQualification());
 
-                //  Updated fields for availability
-                map.put("availableDays", doc.getAvailableDays()); // MONDAY, TUESDAY, etc.
-                map.put("startTime", doc.getStartTime()); // e.g., 09:00
-                map.put("endTime", doc.getEndTime());     // e.g., 17:00
+                map.put(
+                        "availableDays",
+                        doc.getAvailableDays()
+                );
+
+                map.put(
+                        "startTime",
+                        doc.getStartTime()
+                );
+
+                map.put(
+                        "endTime",
+                        doc.getEndTime()
+                );
 
                 result.add(map);
             }
         }
+
         return result;
     }
 
-    // =================== Get Doctors by Specialty ===================
+    // Get Doctors by Specialty
     public List<Doctor> getDoctorsBySpecialty(String specialty) {
         return doctorRepository.findBySpecialty(specialty);
     }
 
-    // =================== Helper: Check if Doctor is Available on a Given Day ===================
-    public boolean isDoctorAvailableOnDay(Doctor doctor, DayOfWeek day) {
-        return doctor.getAvailableDays() != null && doctor.getAvailableDays().contains(day);
+    // Check if Doctor is Available on a Given Day
+    public boolean isDoctorAvailableOnDay(
+            Doctor doctor,
+            DayOfWeek day) {
+
+        return doctor.getAvailableDays() != null
+                && doctor.getAvailableDays().contains(day);
     }
 
-    // =================== Helper: Get Doctor Working Hours ===================
-    public Map<String, LocalTime> getDoctorWorkingHours(Doctor doctor) {
+    // Get Doctor Working Hours
+    public Map<String, LocalTime> getDoctorWorkingHours(
+            Doctor doctor) {
+
         Map<String, LocalTime> hours = new HashMap<>();
+
         hours.put("startTime", doctor.getStartTime());
         hours.put("endTime", doctor.getEndTime());
+
         return hours;
     }
 }
