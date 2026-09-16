@@ -4,10 +4,13 @@ import com.medicare.medicare.Entity.Patient;
 import com.medicare.medicare.Entity.User;
 import com.medicare.medicare.Repository.PatientRepository;
 import com.medicare.medicare.Repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,11 @@ public class PatientService {
     public Patient getPatientByUser(User user) {
         return patientRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
+    }
+
+    // Safe lookup when patient profile may not exist
+    public Optional<Patient> getPatientByUserOptional(User user) {
+        return patientRepository.findByUser(user);
     }
 
     public List<Patient> getAllPatients() {
