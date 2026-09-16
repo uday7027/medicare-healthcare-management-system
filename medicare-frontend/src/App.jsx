@@ -3,7 +3,7 @@ import AppRoutes from "./routes/AppRoutes";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import TestAI from "./TestAi";
+// import TestAI from "./TestAi";
 
 export default function App() {
   return (
