@@ -69,7 +69,7 @@ export default function Login() {
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       const response = await axios.post(
-        `${API_URL}/api/auth/google`,
+        `${API_URL}/auth/google`,
         {
           token: credentialResponse.credential,
         }
