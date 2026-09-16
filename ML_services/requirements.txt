@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+joblib
+pandas
+scikit-learn
+faster-whisper
+deep-translator
+groq
+python-dotenv
