@@ -32,5 +32,4 @@ public class NoShowPredictionService {
         return response.getBody();
     }
 
-
 }
