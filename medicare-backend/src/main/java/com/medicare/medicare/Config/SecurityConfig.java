@@ -1,36 +1,26 @@
 package com.medicare.medicare.Config;
 
 import com.medicare.medicare.Security.JwtAuthenticationFilter;
-
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import org.springframework.security.authentication.AuthenticationManager;
-
 import org.springframework.security.config.Customizer;
-
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-
 import org.springframework.security.config.http.SessionCreationPolicy;
-
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import org.springframework.security.web.SecurityFilterChain;
-
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
 import org.springframework.web.cors.CorsConfiguration;
-
 import org.springframework.web.cors.CorsConfigurationSource;
-
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
@@ -40,8 +30,10 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter
-            jwtAuthenticationFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     @Bean
     public SecurityFilterChain filterChain(
@@ -60,9 +52,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**"
                         ).permitAll()
-                        .anyRequest()
-                        .authenticated()
+                        .anyRequest().authenticated()
                 );
+
         http.addFilterBefore(
                 jwtAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter.class
@@ -72,21 +64,17 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource
-    corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration config =
-                new CorsConfiguration();
+        CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of(
-
+                frontendUrl,
                 "http://localhost:5173",
-
                 "http://127.0.0.1:5173"
         ));
 
         config.setAllowedMethods(List.of(
-
                 "GET",
                 "POST",
                 "PUT",
@@ -95,9 +83,7 @@ public class SecurityConfig {
                 "OPTIONS"
         ));
 
-        config.setAllowedHeaders(
-                List.of("*")
-        );
+        config.setAllowedHeaders(List.of("*"));
 
         config.setAllowCredentials(true);
 
@@ -112,23 +98,13 @@ public class SecurityConfig {
         return source;
     }
 
-    // =========================
-    // PASSWORD ENCODER
-    // =========================
-
     @Bean
     public PasswordEncoder passwordEncoder() {
-
         return new BCryptPasswordEncoder();
     }
 
-    // =========================
-    // AUTH MANAGER
-    // =========================
-
     @Bean
-    public AuthenticationManager
-    authenticationManager(
+    public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config
     ) throws Exception {
 
